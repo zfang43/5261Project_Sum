@@ -1,0 +1,129 @@
+---
+title: "GR5261 Project"
+author: "Zi Fang"
+date: "4/4/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## choose P for AR and q for MA model
+
+
+```{r}
+library(readr)
+df <- read_csv("project_data.csv")
+
+colnames(df)
+
+par(mfrow=c(2,1))
+plot(df$XLV_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLV_net), col="red",lwd=2)
+plot(df$XLV_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLV_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLI_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLI_net), col="red",lwd=2)
+plot(df$XLI_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLI_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLK_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLK_net), col="red",lwd=2)
+plot(df$XLK_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLK_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLF_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLF_net), col="red",lwd=2)
+plot(df$XLF_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLF_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLE_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLE_net), col="red",lwd=2)
+plot(df$XLE_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLE_log), col="red", lwd=2)
+
+## net return and log return are almost identical
+
+```
+
+```{r}
+
+library(readr)
+df <- read_csv("project_data.csv")
+
+par(mfrow=c(2,1))
+acf(df$XLV_net-mean(df$XLV_net),lag.max=40,main="ACF Plot for XLV_net") # MA4 or MA8  #AR1 or AR4
+acf(df$XLV_net-mean(df$XLV_net),type="partial",lag.max=40,main="PACF Plot for XLV_net")
+ar(df$XLV_net-mean(df$XLV_net),method="mle",demean=FALSE)$aic # AR4
+arima(df$XLV_net-mean(df$XLV_net),order=c(0,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLV_net-mean(df$XLV_net),order=c(3,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLV_net-mean(df$XLV_net),order=c(4,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLV_net-mean(df$XLV_net),order=c(0,0,1),include.mean=FALSE,method="ML")$aic
+arima(df$XLV_net-mean(df$XLV_net),order=c(3,0,1),include.mean=FALSE,method="ML")$aic
+arima(df$XLV_net-mean(df$XLV_net),order=c(4,0,1),include.mean=FALSE,method="ML")$aic
+arima(df$XLV_net-mean(df$XLV_net),order=c(8,0,0),include.mean=FALSE,method="ML")$aic
+##best: AR4   ##second best: MA4 AR1
+
+
+
+par(mfrow=c(2,1))
+acf(df$XLI_net-mean(df$XLI_net),lag.max=40,main="ACF Plot for XLI_net")   # MA4  #AR1 or AR14
+acf(df$XLI_net-mean(df$XLI_net),type="partial",lag.max=40,main="PACF Plot for XLI_net")
+ar(df$XLI_net-mean(df$XLI_net),method="mle",demean=FALSE)$aic # AR4
+arima(df$XLI_net-mean(df$XLI_net),order=c(0,0,14),include.mean=FALSE,method="ML")$aic
+arima(df$XLI_net-mean(df$XLI_net),order=c(4,0,14),include.mean=FALSE,method="ML")$aic
+arima(df$XLI_net-mean(df$XLI_net),order=c(4,0,1),include.mean=FALSE,method="ML")$aic
+arima(df$XLI_net-mean(df$XLI_net),order=c(0,0,1),include.mean=FALSE,method="ML")$aic
+arima(df$XLI_net-mean(df$XLI_net),order=c(3,0,1),include.mean=FALSE,method="ML")$aic
+arima(df$XLI_net-mean(df$XLI_net),order=c(4,0,0),include.mean=FALSE,method="ML")$aic
+## best MA4 AR 14 ## second best AR14
+
+par(mfrow=c(2,1))
+acf(df$XLK_net-mean(df$XLK_net),lag.max=40,main="ACF Plot for XLK_net") # MA1 or MA4   #AR4
+acf(df$XLK_net-mean(df$XLK_net),type="partial",lag.max=40,main="PACF Plot for XLK_net")
+ar(df$XLK_net-mean(df$XLK_net),method="mle",demean=FALSE)$aic # AR4
+arima(df$XLK_net-mean(df$XLK_net),order=c(0,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLK_net-mean(df$XLK_net),order=c(1,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLK_net-mean(df$XLK_net),order=c(1,0,3),include.mean=FALSE,method="ML")$aic
+arima(df$XLK_net-mean(df$XLK_net),order=c(4,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLK_net-mean(df$XLK_net),order=c(4,0,0),include.mean=FALSE,method="ML")$aic
+arima(df$XLK_net-mean(df$XLK_net),order=c(1,0,0),include.mean=FALSE,method="ML")$aic
+## best AR4 ## second best MA4
+
+
+par(mfrow=c(2,1))
+acf(df$XLF_net-mean(df$XLF_net),lag.max=40,main="ACF Plot for XLF_net") # MA1 or MA4   #AR1 or AR4
+acf(df$XLF_net-mean(df$XLF_net),type="partial",lag.max=40,main="PACF Plot for XLF_net")
+ar(df$XLF_net-mean(df$XLF_net),method="mle",demean=FALSE)$aic # AR4
+arima(df$XLF_net-mean(df$XLF_net),order=c(0,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLF_net-mean(df$XLF_net),order=c(1,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLF_net-mean(df$XLF_net),order=c(1,0,3),include.mean=FALSE,method="ML")$aic
+arima(df$XLF_net-mean(df$XLF_net),order=c(4,0,4),include.mean=FALSE,method="ML")$aic
+arima(df$XLF_net-mean(df$XLF_net),order=c(1,0,0),include.mean=FALSE,method="ML")$aic
+arima(df$XLF_net-mean(df$XLF_net),order=c(4,0,0),include.mean=FALSE,method="ML")$aic
+## best: MA4 AR4 ## second best MA4
+
+par(mfrow=c(2,1))
+acf(df$XLE_net-mean(df$XLE_net),lag.max=40, main="ACF Plot for XLE_net") # MA5 
+acf(df$XLE_net-mean(df$XLE_net),type="partial",lag.max=40, main="PACF Plot for XLE_net") # AR5
+ar(df$XLE_net-mean(df$XLE_net),method="mle",demean=FALSE)$aic # AR5
+arima(df$XLE_net-mean(df$XLE_net),order=c(0,0,5),include.mean=FALSE,method="ML")$aic
+arima(df$XLE_net-mean(df$XLE_net),order=c(5,0,5),include.mean=FALSE,method="ML")$aic
+arima(df$XLE_net-mean(df$XLE_net),order=c(5,0,0),include.mean=FALSE,method="ML")$aic
+arima(df$XLE_net-mean(df$XLE_net),order=c(3,0,5),include.mean=FALSE,method="ML")$aic
+arima(df$XLE_net-mean(df$XLE_net),order=c(5,0,3),include.mean=FALSE,method="ML")$aic
+arima(df$XLE_net-mean(df$XLE_net),order=c(8,0,0),include.mean=FALSE,method="ML")$aic
+## best MA5 ##second best AR5
+```
