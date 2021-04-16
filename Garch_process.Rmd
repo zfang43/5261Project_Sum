@@ -152,10 +152,22 @@ for (i in 1:5){
 ```{r forecast}
 #------------------------Forecast------------------------
 # GARCH forecast
-igjrgarchfit <- ugarchfit(data=xli, spec=igjrgarchspec, out.sample = 22)
-igjrgarchforecast <- ugarchforecast(fitORspec=igjrgarchfit, n.ahead=22, n.roll=22)
-print(igjrgarchforecast)
-# VaR based on predicted returns
-VaR.predict.i <- as.numeric(quantile(igjrgarchforecast,probs=.05))
 
+for (i in 1:5){
+gjrgarchfit <- ugarchfit(data=datalist[[i]], spec=models[[5+i]], out.sample = 13)
+gjrgarchforecast <- ugarchforecast(fitORspec=gjrgarchfit, n.ahead=13, n.roll=13)
+print(gjrgarchforecast)
+
+#plot series
+series <- gjrgarchforecast@forecast$seriesFor[,14]
+days <- seq(1,13,1)
+plot(days,series,type = "l")
+
+#plot sigmas
+sigmas <- gjrgarchforecast@forecast$sigmaFor[,14]
+plot(days,sigmas,type = "l")
+
+# VaR based on predicted returns
+VaR.predict <- as.numeric(quantile(gjrgarchforecast,probs=.05))
+}
 ```
