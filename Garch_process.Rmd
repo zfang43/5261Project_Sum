@@ -1,0 +1,161 @@
+---
+title: "Garch_code"
+author: "Stella Dong"
+date: "4/16/2021"
+output: html_document
+---
+ 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rugarch)
+library(xts)
+library(PerformanceAnalytics)
+library(ggplot2)
+```
+
+```{r model fitting}
+data  <- read.csv("project_data.csv",header=T)
+# get log returns
+data<-data[,c(1,7:11)]
+xli <- xts(data[,3], order.by=as.Date(data[,1], "%m/%d/%Y"))
+xlv <- xts(data[,2], order.by=as.Date(data[,1], "%m/%d/%Y"))
+xlk <- xts(data[,4], order.by=as.Date(data[,1], "%m/%d/%Y"))
+xlf <- xts(data[,5], order.by=as.Date(data[,1], "%m/%d/%Y"))
+xle <- xts(data[,6], order.by=as.Date(data[,1], "%m/%d/%Y"))
+datalist <- list("xli" = xli,"xlv" = xlv,"xlk" = xlk,"xlf" = xlf,"xle" = xle)
+arma <- list(c(6,4),c(6,5),c(0,4),c(4,6),c(6,6))
+names <- c("XLI","XLV","XLK","XLF","XLE")
+
+# GARCH spec
+
+for (i in 1:5){
+  order <- arma[[i]]
+  garchspec <- ugarchspec(mean.model = list(armaOrder = order),
+                           variance.model = list(model = "sGARCH"),
+                           distribution.model = "norm")  
+  gjrgarchspec <- ugarchspec(mean.model = list(armaOrder = order),
+                              variance.model = list(model = "gjrGARCH"),
+                              distribution.model = "norm")
+  # GARCH fit
+  
+  garchfit<-ugarchfit(data=datalist[[i]], spec=garchspec)
+  gjrgarchfit<- ugarchfit(data=datalist[[i]], spec=gjrgarchspec)
+  
+  
+  # check normality
+  stdret<-residuals(garchfit, standardize=TRUE)
+  chart.Histogram(stdret,methods=c("add.density","add.normal" ),
+                  colorset=c("gray","red","blue"), main = paste0(names[i]," normality check")) # should use t distribution as shown in the graph
+  
+  stdret_gjr<-residuals(gjrgarchfit, standardize=TRUE)
+  chart.Histogram(stdret_gjr,methods=c("add.density","add.normal" ),
+                  colorset=c("gray","red","blue"),main = paste0(names[i]," goodness-to-fit test"))
+}
+
+```
+
+```{r Adjust model}
+models <- list("XLI_fit","XLV_fit","XLK_fit","XLF_fit","XLE_fit","XLI_spec","XLV_spec","XLK_spec","XLF_spec","XLE_spec")
+t <- c("std","std","sstd","sstd","std")
+
+# refit GARCH spec with t distribution assumption
+for (i in 1:5){
+  order <- arma[[i]]
+  garchspec <- ugarchspec(mean.model = list(armaOrder = order),
+                           variance.model = list(model = "sGARCH"),
+                           distribution.model = t[i])  
+  gjrgarchspec <- ugarchspec(mean.model = list(armaOrder = order),
+                             variance.model = list(model = "gjrGARCH"),
+                             distribution.model = t[i])
+
+  # GARCH fit
+  garchfit <- ugarchfit(data=datalist[[i]], spec=garchspec,solver="hybrid")
+  gjrgarchfit <- ugarchfit(data=datalist[[i]], spec=gjrgarchspec,solver="hybrid")
+  
+  
+# ICs for choosing model
+  sg_info <- infocriteria(garchfit)[1]
+  gjrg_info <- infocriteria(gjrgarchfit)[1] 
+  if (sg_info <= gjrg_info){
+    iout<- newsimpact(garchfit) # a visualization for leverage effect (used in final report)
+    plot(iout$zx,iout$zy,xlab=paste0(names[i]," prediction error with Standard Garch"),ylab="predicted variance")
+    models[[i]] <- garchfit
+    models[[5+i]] <- garchspec
+  }else{
+    iout<-newsimpact(gjrgarchfit) # a visualization for leverage effect (used in final report)
+    plot(iout$zx,iout$zy,xlab=paste0(names[i]," prediction error with GJR Garch"),ylab="predicted variance")
+    models[[i]] <- gjrgarchfit
+    models[[5+i]] <- gjrgarchspec
+  }
+  
+}
+```
+
+```{r validation with test, warning=F,message=F}
+#------------------------Validate Model----------------
+# Ljung-Box Test for Autocorrelation
+# Goodness-to-fit Test for white noise normality
+# ARCH LM Test for ARCH Effect
+plotlist <- list("CI1","CI2","CI3","CI4","CI5","VaR1","VaR2","VaR3","VaR4","VaR5")
+for(i in 1:5){
+  model <- models[[i]]
+  spec <- models[[5+i]]
+  model
+
+  # GARCH backtest using VaR for rolling windows
+
+  gjrgarchroll<- ugarchroll(spec, data=datalist[[i]], 
+                            n.start=1848, 
+                            refit.window="moving", 
+                            refit.every=1,
+                            n.ahead = 1,
+                            solver.control=list(tol=1e-4, delta=1e-5),
+                            solver="hybrid")
+   #gjrgarchroll = resume(gjrgarchroll,solver="gosolnp",solver.control=list(tol=1e-4,delta=1e-5))
+  
+  preds <- as.data.frame(gjrgarchroll)
+
+  #calculating 95% CIs for each prediction
+  preds$lower_bound <- preds$Mu - 1.96*preds$Sigma
+  preds$upper_bound <- preds$Mu + 1.96*preds$Sigma
+  preds$days <- as.Date(rownames(preds))
+  
+  #calculate coverage rate
+CR <- mean(preds$Realized <= preds$upper_bound & preds$Realized >= preds$lower_bound)
+  
+  #plot CI
+plot <- ggplot(data = preds, aes(x=days, y=Realized,group = 1)) +
+  geom_line() +
+  geom_ribbon(data = preds,aes(ymin = lower_bound,ymax = upper_bound),alpha = 0.3)+
+  ggtitle(paste0("CIs for predicted returns for ",names[i]," Funds with coverage rate ",CR))
+plotlist[[i]] <- plot
+
+    
+gjrgarchVaR <- quantile(gjrgarchroll,probs=.05)
+actual <- xts(as.data.frame(gjrgarchroll)$Realized, time(gjrgarchVaR))
+#calculate VaR Coverage
+VaR <- VaRplot(alpha=.05,actual=actual,VaR=gjrgarchVaR,main = (paste0("VaR with alpha = 5% for ",names[i]," Funds with VaR Coverage ",VaR)))
+plotlist[[5+i]] <- VaR
+
+print(paste0(names[i]," Completed"))
+
+}
+```
+
+```{r plot CI coverage}
+for (i in 1:5){
+  plot <- plotlist[[i]]
+  plot(plot)
+}
+```
+
+```{r forecast}
+#------------------------Forecast------------------------
+# GARCH forecast
+igjrgarchfit <- ugarchfit(data=xli, spec=igjrgarchspec, out.sample = 22)
+igjrgarchforecast <- ugarchforecast(fitORspec=igjrgarchfit, n.ahead=22, n.roll=22)
+print(igjrgarchforecast)
+# VaR based on predicted returns
+VaR.predict.i <- as.numeric(quantile(igjrgarchforecast,probs=.05))
+
+```
