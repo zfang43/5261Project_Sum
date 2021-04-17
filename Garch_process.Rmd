@@ -107,7 +107,7 @@ for(i in 1:5){
   gjrgarchroll<- ugarchroll(spec, data=datalist[[i]], 
                             n.start=1848, 
                             refit.window="moving", 
-                            refit.every=1,
+                            refit.every=5,
                             n.ahead = 1,
                             solver.control=list(tol=1e-4, delta=1e-5),
                             solver="hybrid")
@@ -134,7 +134,7 @@ plotlist[[i]] <- plot
 gjrgarchVaR <- quantile(gjrgarchroll,probs=.05)
 actual <- xts(as.data.frame(gjrgarchroll)$Realized, time(gjrgarchVaR))
 #calculate VaR Coverage
-VaR <- VaRplot(alpha=.05,actual=actual,VaR=gjrgarchVaR,main = (paste0("VaR with alpha = 5% for ",names[i]," Funds with VaR Coverage ",VaR)))
+VaR <- VaRplot(alpha=.05,actual=actual,VaR=gjrgarchVaR,title = (paste0("VaR with alpha = 5% for ",names[i]," Funds with VaR Coverage ",VaR)))
 plotlist[[5+i]] <- VaR
 
 print(paste0(names[i]," Completed"))
