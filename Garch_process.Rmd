@@ -161,11 +161,13 @@ print(gjrgarchforecast)
 #plot series
 series <- gjrgarchforecast@forecast$seriesFor[,14]
 days <- seq(1,13,1)
-plot(days,series,type = "l")
+plot1 <- plot(days,series,type = "l")
+plot1
 
 #plot sigmas
 sigmas <- gjrgarchforecast@forecast$sigmaFor[,14]
-plot(days,sigmas,type = "l")
+plot2 <- plot(days,sigmas,type = "l")
+plot2
 
 # VaR based on predicted returns
 VaR.predict <- as.numeric(quantile(gjrgarchforecast,probs=.05))
