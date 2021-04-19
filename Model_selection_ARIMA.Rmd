@@ -1,0 +1,262 @@
+---
+title: "GR5261 Project"
+author: "Zi Fang"
+date: "4/4/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## choose P for AR and q for MA model
+
+
+```{r}
+library(readr)
+df <- read_csv("project_data.csv")
+
+colnames(df)
+
+par(mfrow=c(2,1))
+plot(df$XLV_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLV_net), col="red",lwd=2)
+plot(df$XLV_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLV_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLI_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLI_net), col="red",lwd=2)
+plot(df$XLI_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLI_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLK_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLK_net), col="red",lwd=2)
+plot(df$XLK_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLK_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLF_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLF_net), col="red",lwd=2)
+plot(df$XLF_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLF_log), col="red", lwd=2)
+
+
+par(mfrow=c(2,1))
+plot(df$XLE_net, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLE_net), col="red",lwd=2)
+plot(df$XLE_log, type="l", col="black", xlab="Date")
+abline(h=mean(df$XLE_log), col="red", lwd=2)
+
+## net return and log return are almost identical
+
+```
+
+```{r}
+library(readr)
+library(forecast)
+library(tseries)
+df <- read_csv("project_data.csv")
+
+# test for stationary, decide d value
+adf.test(df$XLV_log-mean(df$XLV_log))
+
+op=par(mfrow=c(2,1))
+acf(df$XLV_log-mean(df$XLV_log),lag.max=40,main="ACF Plot for XLV_log") # MA1 or MA4  #AR1 AR4 or AR14
+acf(df$XLV_log-mean(df$XLV_log),type="partial",lag.max=40,main="PACF Plot for XLV_log")
+par(op)
+
+ar(df$XLV_log-mean(df$XLV_log),method="mle",demean=FALSE)$aic # AR4
+
+auto.arima(df$XLV_log-mean(df$XLV_log),  d=0, max.order=12, max.p=6, max.q=6, ic="aic",seasonal = FALSE, stepwise = FALSE, approximation = FALSE,allowdrift = FALSE, allowmean = FALSE)
+
+##best: ARIMA(6,0,5)
+
+# Fitting ARIMA model to mean-corrected data
+best_XLV <- arima(df$XLV_log-mean(df$XLV_log),order=c(6,0,5),include.mean=FALSE,method="ML")
+
+# Residuals from the fitted ARIMA model
+y.res_XLV <- best_XLV$residuals
+plot(y.res_XLV,type="o",pch=22,lty=1,pty=2,xlab="Date",ylab="Residuals from the fitted ARIMA(6,0,5) model", col="black")
+abline(h=0)
+
+# Test for Randomness
+op=par(mfrow=c(2,1))
+acf(y.res_XLV,lag.max=40,main="Residuals from the fitted ARIMA(6,0,5) model-ACF")
+acf(y.res_XLV,lag.max=40,type="partial",main="Residuals from the fitted ARIMA(6,0,5) model-PACF")
+par(op)
+
+Box.test(y.res_XLV,lag=20,type="Box-Pierce")
+Box.test(y.res_XLV,lag=20,type="Ljung-Box") #satisfy randomness
+
+# Test for Normality
+qqnorm(y.res_XLV, main = "Normal Q-Q Plot for XLV"); qqline(y.res_XLV, col="red", lwd=2)
+shapiro.test(y.res_XLV)
+jarque.bera.test(y.res_XLV) #not satisfy normality
+
+
+```
+
+```{r}
+# test for stationary, decide d value
+adf.test(df$XLI_log-mean(df$XLI_log))
+
+op=par(mfrow=c(2,1))
+acf(df$XLI_log-mean(df$XLI_log),lag.max=40,main="ACF Plot for XLI_log")   # MA4  #AR4 or AR8
+acf(df$XLI_log-mean(df$XLI_log),type="partial",lag.max=40,main="PACF Plot for XLI_log")
+par(op)
+
+ar(df$XLI_log-mean(df$XLI_log),method="mle",demean=FALSE)$aic # AR4
+
+auto.arima(df$XLI_log-mean(df$XLI_log),  d=0, max.order=10, max.p=5, max.q=5, ic="aic",seasonal = FALSE, stepwise = FALSE, approximation = FALSE,allowdrift = FALSE, allowmean = FALSE)
+## best ARIMA(4,0,5) 
+
+# Fitting ARMA model to mean-corrected data
+best_XLI <- arima(df$XLI_log-mean(df$XLI_log),order=c(4,0,5),include.mean=FALSE,method="ML")
+
+# Residuals from the fitted ARIMA(4,0,5) model
+y.res_XLI <- best_XLI$residuals
+plot(y.res_XLI,type="o",pch=22,lty=1,pty=2,xlab="Date",ylab="Residuals from the fitted ARIMA(4,0,5) model")
+abline(h=0)
+
+# Test for Randomness
+op=par(mfrow=c(2,1))
+acf(y.res_XLI,lag.max=40,main="Residuals from the fitted ARIMA(4,0,5) model-ACF")
+acf(y.res_XLI,lag.max=40,type="partial",main="Residuals from the fitted ARIMA(4,0,5) model-PACF")
+par(op)
+
+Box.test(y.res_XLI,lag=20,type="Box-Pierce")
+Box.test(y.res_XLI,lag=20,type="Ljung-Box") #satisfy randomness
+
+# Test for Normality
+qqnorm(y.res_XLI, main = "Normal Q-Q Plot for XLI"); qqline(y.res_XLI)
+shapiro.test(y.res_XLI) 
+jarque.bera.test(y.res_XLI)#not satisfy normality
+```
+```{r}
+# test for stationary, decide d value
+adf.test(df$XLK_log-mean(df$XLK_log))
+
+op=par(mfrow=c(2,1))
+acf(df$XLK_log-mean(df$XLK_log),lag.max=40,main="ACF Plot for XLK_log") # MA1 or MA4   #AR1 or AR4
+acf(df$XLK_log-mean(df$XLK_log),type="partial",lag.max=40,main="PACF Plot for XLK_log")
+par(op)
+
+ar(df$XLK_log-mean(df$XLK_log),method="mle",demean=FALSE)$aic # AR4
+
+auto.arima(df$XLK_log-mean(df$XLK_log),  d=0, max.order=12, max.p=6, max.q=6, ic="aic",seasonal = FALSE, stepwise = FALSE, approximation = FALSE,allowdrift = FALSE, allowmean = FALSE, trace=TRUE)
+## best ARIMA(0,0,4)
+
+# Fitting ARMA model to mean-corrected data
+best_XLK <- arima(df$XLK_log-mean(df$XLK_log),order=c(0,0,4),include.mean=FALSE,method="ML")
+
+# Residuals from the fitted ARIMA model
+y.res_XLK <- best_XLK$residuals
+plot(y.res_XLK,type="o",pch=22,lty=1,pty=2,xlab="Date",ylab="Residuals from the fitted ARIMA(0,0,4) model")
+abline(h=0)
+
+# Test for Randomness
+op=par(mfrow=c(2,1))
+acf(y.res_XLK,lag.max=40,main="Residuals from the fitted ARIMA(0,0,4) model-ACF")
+acf(y.res_XLK,lag.max=40,type="partial",main="Residuals from the fitted ARIMA(0,0,4) model-PACF")
+par(op)
+
+Box.test(y.res_XLK,lag=20,type="Box-Pierce")
+Box.test(y.res_XLK,lag=20,type="Ljung-Box") #satisfy randomness
+
+# Test for Normality
+qqnorm(y.res_XLK, main = "Normal Q-Q Plot for XLK"); qqline(y.res_XLK)
+shapiro.test(y.res_XLK) 
+jarque.bera.test(y.res_XLK)#not satisfy normality
+
+
+
+
+```
+
+```{r}
+# test for stationary, decide d value
+adf.test(df$XLF_log-mean(df$XLF_log))
+
+op=par(mfrow=c(2,1))
+acf(df$XLF_log-mean(df$XLF_log),lag.max=40,main="ACF Plot for XLF_log") # MA1   #AR1 or AR4
+acf(df$XLF_log-mean(df$XLF_log),type="partial",lag.max=40,main="PACF Plot for XLF_log")
+par(op)
+
+ar(df$XLF_log-mean(df$XLF_log),method="mle",demean=FALSE)$aic # AR4
+
+auto.arima(df$XLF_log-mean(df$XLF_log),  d=0, max.order=10, max.p=3, max.q=6, ic="aic",seasonal = FALSE, stepwise = FALSE, approximation = FALSE,allowdrift = FALSE, allowmean = FALSE, trace=TRUE)
+
+## best ARIMA(3,0,5)
+
+# Fitting ARMA model to mean-corrected data
+best_XLF <- arima(df$XLF_log-mean(df$XLF_log),order=c(3,0,5),include.mean=FALSE,method="ML")
+
+# Residuals from the fitted ARIMA model
+y.res_XLF <- best_XLF$residuals
+plot(y.res_XLF,type="o",pch=22,lty=1,pty=2,xlab="Date",ylab="Residuals from the fitted ARIMA(3,0,5) model")
+abline(h=0)
+
+# Test for Randomness
+op=par(mfrow=c(2,1))
+acf(y.res_XLF,lag.max=40,main="Residuals from the fitted ARIMA(3,0,5) model-ACF")
+acf(y.res_XLF,lag.max=40,type="partial",main="Residuals from the fitted ARIMA(3,0,5) model-PACF")
+par(op)
+
+Box.test(y.res_XLF,lag=20,type="Box-Pierce")
+Box.test(y.res_XLF,lag=20,type="Ljung-Box") #satisfy randomness
+
+# Test for Normality
+qqnorm(y.res_XLF, main = "Normal Q-Q Plot for XLF"); qqline(y.res_XLF)
+shapiro.test(y.res_XLF)
+jarque.bera.test(y.res_XLF)#not satisfy normality
+
+
+```
+
+```{r}
+# test for stationary, decide d value
+adf.test(df$XLE_log-mean(df$XLE_log))
+
+op=par(mfrow=c(2,1))
+acf(df$XLE_log-mean(df$XLE_log),lag.max=40,main="ACF Plot for XLE_log") # MA2 or MA4 or MA5   #AR2 or AR5
+acf(df$XLE_log-mean(df$XLE_log),type="partial",lag.max=40,main="PACF Plot for XLE_log")
+par(op)
+
+ar(df$XLE_log-mean(df$XLE_log),method="mle",demean=FALSE)$aic # AR5
+
+auto.arima(df$XLE_log-mean(df$XLE_log),  d=0, max.order=16, max.p=8, max.q=8, ic="aic",seasonal = FALSE, stepwise = FALSE, approximation = FALSE,allowdrift = FALSE, allowmean = FALSE)
+
+## best ARIMA(6,0,6)
+
+# Fitting ARMA model to mean-corrected data
+best_XLE <- arima(df$XLE_log-mean(df$XLE_log),order=c(6,0,6),include.mean=FALSE,method="ML")
+
+# Residuals from the fitted ARMA model
+y.res_XLE <- best_XLE$residuals
+plot(y.res_XLE,type="o",pch=22,lty=1,pty=2,xlab="Date",ylab="Residuals from the fitted ARIMA(6,0,6) model")
+abline(h=0)
+
+# Test for Randomness
+op=par(mfrow=c(2,1))
+acf(y.res_XLE,lag.max=40,main="Residuals from the fitted ARIMA(6,0,6) model-ACF")
+acf(y.res_XLE,lag.max=40,type="partial",main="Residuals from the fitted ARIMA(6,0,6) model-PACF")
+par(op)
+
+Box.test(y.res_XLE,lag=20,type="Box-Pierce")
+Box.test(y.res_XLE,lag=20,type="Ljung-Box") #satisfy randomness
+
+# Test for Normality
+qqnorm(y.res_XLE, main = "Normal Q-Q Plot for XLE"); qqline(y.res_XLE)
+shapiro.test(y.res_XLE)
+jarque.bera.test(y.res_XLE)#not satisfy normality
+
+```
+
+
